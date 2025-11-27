@@ -1,4 +1,5 @@
-import { MapPin, Star, Globe, MessageCircle, UserPlus, Video } from 'lucide-react';
+import { MapPin, Star, Globe, MessageCircle, UserPlus, Video, Settings } from 'lucide-react';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 export interface CreatorProfile {
   id: string;
@@ -28,9 +29,13 @@ interface CreatorProfileHeroProps {
   onFollow: () => void;
   onMessage: () => void;
   onViewTikTok: () => void;
+  onEditProfile?: () => void;
 }
 
-export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok }: CreatorProfileHeroProps) {
+export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok, onEditProfile }: CreatorProfileHeroProps) {
+  const { user } = useAuthContext();
+  const isOwnProfile = user?.id === profile.id;
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -227,25 +232,39 @@ export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok 
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={onFollow}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
-                     hover:bg-coral-600 text-white font-semibold transition-all
-                     shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <UserPlus className="w-4 h-4" />
-            Follow
-          </button>
+          {isOwnProfile ? (
+            <button
+              onClick={onEditProfile}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                       hover:bg-coral-600 text-white font-semibold transition-all
+                       shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Settings className="w-4 h-4" />
+              Edit Profile
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onFollow}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                         hover:bg-coral-600 text-white font-semibold transition-all
+                         shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <UserPlus className="w-4 h-4" />
+                Follow
+              </button>
 
-          <button
-            onClick={onMessage}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300
-                     hover:border-coral-500 hover:bg-coral-50 text-gray-700 hover:text-coral-700
-                     font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Message
-          </button>
+              <button
+                onClick={onMessage}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300
+                         hover:border-coral-500 hover:bg-coral-50 text-gray-700 hover:text-coral-700
+                         font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Message
+              </button>
+            </>
+          )}
 
           {profile.socialLinks.tiktok && (
             <button

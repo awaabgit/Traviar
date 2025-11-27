@@ -1,6 +1,6 @@
-import { Star, Clock, MapPin } from 'lucide-react';
+import { Star, Clock, MapPin, Compass, Sparkles } from 'lucide-react';
 
-interface ItineraryCardData {
+export interface ItineraryCardData {
   id: string;
   title: string;
   coverImage: string;
@@ -13,82 +13,65 @@ interface ItineraryCardData {
 }
 
 interface ItinerariesTabProps {
+  itineraries: ItineraryCardData[];
+  isOwnProfile: boolean;
   onItineraryClick: (id: string) => void;
+  onPlanTrip?: () => void;
+  onPlanWithAI?: () => void;
 }
 
-const MOCK_ITINERARIES: ItineraryCardData[] = [
-  {
-    id: '1',
-    title: 'Weekend in Paris',
-    coverImage: 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 19,
-    rating: 4.8,
-    reviewCount: 124,
-    duration: '3 days',
-    stops: 12,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-  {
-    id: '2',
-    title: 'Barcelona on a Budget',
-    coverImage: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 15,
-    rating: 4.9,
-    reviewCount: 89,
-    duration: '4 days',
-    stops: 15,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-  {
-    id: '3',
-    title: 'Lisbon Hidden Gems',
-    coverImage: 'https://images.pexels.com/photos/2147029/pexels-photo-2147029.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 22,
-    rating: 4.7,
-    reviewCount: 67,
-    duration: '3 days',
-    stops: 10,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-  {
-    id: '4',
-    title: 'Rome in 5 Days',
-    coverImage: 'https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 29,
-    rating: 4.9,
-    reviewCount: 156,
-    duration: '5 days',
-    stops: 18,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-  {
-    id: '5',
-    title: 'Amsterdam Explorer',
-    coverImage: 'https://images.pexels.com/photos/2031706/pexels-photo-2031706.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 24,
-    rating: 4.8,
-    reviewCount: 92,
-    duration: '4 days',
-    stops: 14,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-  {
-    id: '6',
-    title: 'Berlin Cultural Tour',
-    coverImage: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=600',
-    price: 18,
-    rating: 4.7,
-    reviewCount: 78,
-    duration: '3 days',
-    stops: 11,
-    creatorAvatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=80',
-  },
-];
+export function ItinerariesTab({ itineraries, isOwnProfile, onItineraryClick, onPlanTrip, onPlanWithAI }: ItinerariesTabProps) {
+  // Empty state when no itineraries
+  if (itineraries.length === 0) {
+    if (isOwnProfile) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-sunset flex items-center justify-center mb-6">
+            <Compass className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            Ready for your next adventure?
+          </h3>
+          <p className="text-gray-600 text-center mb-6 max-w-md">
+            Start creating your first itinerary and share your travel experiences with the world
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onPlanWithAI}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                       hover:bg-coral-600 text-white font-semibold transition-all
+                       shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Sparkles className="w-4 h-4" />
+              Plan with AI
+            </button>
+            <button
+              onClick={onPlanTrip}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-coral-500
+                       hover:bg-coral-50 text-coral-600 font-semibold transition-all
+                       transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Compass className="w-4 h-4" />
+              Plan a Trip
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <MapPin className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 text-center">No itineraries yet</p>
+        </div>
+      );
+    }
+  }
 
-export function ItinerariesTab({ onItineraryClick }: ItinerariesTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {MOCK_ITINERARIES.map((itinerary) => (
+      {itineraries.map((itinerary) => (
         <button
           key={itinerary.id}
           onClick={() => onItineraryClick(itinerary.id)}

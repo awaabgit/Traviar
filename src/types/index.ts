@@ -1,11 +1,14 @@
 export interface Profile {
   id: string;
   username: string;
+  full_name?: string;
   avatar_url?: string;
   bio?: string;
   is_creator: boolean;
   travel_style: string[];
   preferred_budget_range: 'low' | 'medium' | 'high';
+  follower_count: number;
+  following_count: number;
   created_at: string;
   updated_at: string;
 }

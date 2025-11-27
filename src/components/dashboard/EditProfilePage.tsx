@@ -1,10 +1,19 @@
-import { useState } from 'react';
-import { Save, Upload, X, MapPin, Globe, ExternalLink, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, Upload, X, CheckCircle, Loader2 } from 'lucide-react';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
+import { useUpdateProfile } from '../../hooks/useUpdateProfile';
 
 const NICHE_TAGS = [
   'Budget Travel', 'Luxury Travel', 'Adventure', 'City Breaks', 'Beach',
   'Foodie', 'Solo Travel', 'Family Travel', 'Backpacking', 'Road Trips',
   'Photography', 'Culture', 'Wildlife', 'Wellness', 'Nightlife'
+];
+
+const BUDGET_OPTIONS = [
+  { value: 'low' as const, label: 'Budget' },
+  { value: 'medium' as const, label: 'Mid-Range' },
+  { value: 'high' as const, label: 'Luxury' },
 ];
 
 const PRESET_COVERS = [
@@ -17,18 +26,31 @@ const PRESET_COVERS = [
 ];
 
 export function EditProfilePage() {
-  const [coverImage, setCoverImage] = useState('https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=1920');
-  const [avatar, setAvatar] = useState('https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=300');
-  const [displayName, setDisplayName] = useState('Sam Chen');
-  const [username, setUsername] = useState('wanderlust_sam');
-  const [location, setLocation] = useState('Barcelona, Spain');
-  const [bio, setBio] = useState('Full-time travel creator helping budget travelers explore Europe. Sharing authentic experiences, hidden gems, and practical tips for your next adventure.');
-  const [selectedTags, setSelectedTags] = useState(['Budget Travel', 'City Breaks', 'Foodie', 'Solo Travel']);
-  const [tiktokUrl, setTiktokUrl] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
+  const { user } = useAuthContext();
+  const { profile, loading: loadingProfile, refetch } = useProfile(user?.id);
+  const { updateProfile, updating, error: updateError } = useUpdateProfile();
+
+  const [coverImage, setCoverImage] = useState('');
+  const [avatar, setAvatar] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [budgetRange, setBudgetRange] = useState<'low' | 'medium' | 'high'>('medium');
   const [showCoverModal, setShowCoverModal] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Load profile data when it becomes available
+  useEffect(() => {
+    if (profile) {
+      setAvatar(profile.avatar_url || '');
+      setDisplayName(profile.full_name || '');
+      setUsername(profile.username || '');
+      setBio(profile.bio || '');
+      setSelectedTags(profile.travel_style || []);
+      setBudgetRange(profile.preferred_budget_range || 'medium');
+    }
+  }, [profile]);
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -37,6 +59,34 @@ export function EditProfilePage() {
       setSelectedTags([...selectedTags, tag]);
     }
   };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+
+    setSaveSuccess(false);
+
+    const result = await updateProfile(user.id, {
+      full_name: displayName,
+      avatar_url: avatar,
+      bio,
+      travel_style: selectedTags,
+      preferred_budget_range: budgetRange,
+    });
+
+    if (result) {
+      setSaveSuccess(true);
+      refetch(); // Refresh profile data
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }
+  };
+
+  if (loadingProfile) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-coral-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-24">
@@ -160,18 +210,16 @@ export function EditProfilePage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Location
+            Avatar URL
           </label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-              placeholder="City, Country"
-            />
-          </div>
+          <input
+            type="url"
+            value={avatar}
+            onChange={(e) => setAvatar(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+            placeholder="https://example.com/your-avatar.jpg"
+          />
+          <p className="text-xs text-gray-500 mt-1">Paste a direct link to your profile picture</p>
         </div>
 
         <div>
@@ -209,83 +257,73 @@ export function EditProfilePage() {
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Social Links</h2>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">TikTok</label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="url"
-              value={tiktokUrl}
-              onChange={(e) => setTiktokUrl(e.target.value)}
-              placeholder="https://tiktok.com/@username"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="url"
-              value={instagramUrl}
-              onChange={(e) => setInstagramUrl(e.target.value)}
-              placeholder="https://instagram.com/username"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">YouTube</label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="url"
-              value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
-              placeholder="https://youtube.com/@channel"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="url"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://yourwebsite.com"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-            />
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Preferred Budget Range
+          </label>
+          <div className="flex gap-3">
+            {BUDGET_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setBudgetRange(option.value)}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                  budgetRange === option.value
+                    ? 'border-coral-500 bg-coral-50 text-coral-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
+
+      {updateError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-red-700 font-medium">Error saving profile</p>
+          <p className="text-sm text-red-600 mt-1">{updateError}</p>
+        </div>
+      )}
+
+      {saveSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <div>
+            <p className="text-green-700 font-medium">Profile updated successfully!</p>
+            <p className="text-sm text-green-600 mt-1">Your changes have been saved.</p>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 py-4 px-8 flex items-center justify-between z-10">
-        <button className="px-6 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50
-                         text-gray-700 font-medium transition-all">
-          Preview Changes
-        </button>
         <div className="flex items-center gap-3">
-          <button className="px-6 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50
-                           text-gray-700 font-medium transition-all">
-            Cancel
+          <button
+            onClick={handleSave}
+            disabled={updating}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-coral-500
+                     hover:bg-coral-600 text-white font-semibold transition-all shadow-sm
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save Changes
+              </>
+            )}
           </button>
-          <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-coral-500
-                           hover:bg-coral-600 text-white font-semibold transition-all shadow-sm">
-            <Save className="w-4 h-4" />
-            Save Changes
-          </button>
+          {saveSuccess && (
+            <span className="text-green-600 font-medium flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Saved!
+            </span>
+          )}
         </div>
       </div>
     </div>
