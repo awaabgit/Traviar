@@ -1,4 +1,6 @@
-interface CollectionCardData {
+import { Layers, Plus } from 'lucide-react';
+
+export interface CollectionCardData {
   id: string;
   title: string;
   coverImage: string;
@@ -7,58 +9,53 @@ interface CollectionCardData {
 }
 
 interface CollectionsTabProps {
+  collections: CollectionCardData[];
+  isOwnProfile: boolean;
   onCollectionClick: (id: string) => void;
+  onCreateCollection?: () => void;
 }
 
-const MOCK_COLLECTIONS: CollectionCardData[] = [
-  {
-    id: '1',
-    title: 'European City Breaks',
-    coverImage: 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Quick weekend trips across Europe',
-    itineraryCount: 12,
-  },
-  {
-    id: '2',
-    title: 'Budget Travel Guide',
-    coverImage: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Affordable adventures for smart travelers',
-    itineraryCount: 8,
-  },
-  {
-    id: '3',
-    title: 'Foodie Adventures',
-    coverImage: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Culinary journeys around the world',
-    itineraryCount: 15,
-  },
-  {
-    id: '4',
-    title: 'Hidden Gems',
-    coverImage: 'https://images.pexels.com/photos/2147029/pexels-photo-2147029.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Off-the-beaten-path destinations',
-    itineraryCount: 10,
-  },
-  {
-    id: '5',
-    title: 'Summer Escapes',
-    coverImage: 'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Perfect warm-weather getaways',
-    itineraryCount: 14,
-  },
-  {
-    id: '6',
-    title: 'Cultural Immersion',
-    coverImage: 'https://images.pexels.com/photos/2675269/pexels-photo-2675269.jpeg?auto=compress&cs=tinysrgb&w=600',
-    description: 'Deep dives into local culture',
-    itineraryCount: 9,
-  },
-];
+export function CollectionsTab({ collections, isOwnProfile, onCollectionClick, onCreateCollection }: CollectionsTabProps) {
+  // Empty state when no collections
+  if (collections.length === 0) {
+    if (isOwnProfile) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-sunset flex items-center justify-center mb-6">
+            <Layers className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            Curate your favorite places
+          </h3>
+          <p className="text-gray-600 text-center mb-6 max-w-md">
+            Organize your itineraries into collections and share your favorite destinations with the world
+          </p>
+          <button
+            onClick={onCreateCollection}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                     hover:bg-coral-600 text-white font-semibold transition-all
+                     shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            Create Collection
+          </button>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <Layers className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 text-center">No collections yet</p>
+        </div>
+      );
+    }
+  }
 
-export function CollectionsTab({ onCollectionClick }: CollectionsTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      {MOCK_COLLECTIONS.map((collection) => (
+      {collections.map((collection) => (
         <button
           key={collection.id}
           onClick={() => onCollectionClick(collection.id)}

@@ -1,77 +1,78 @@
-import { Eye, Play } from 'lucide-react';
+import { Eye, Play, Video, Link } from 'lucide-react';
 
-interface VideoCardData {
+export interface VideoCardData {
   id: string;
   thumbnail: string;
-  views: string;
-  itineraryTag: string;
+  views: number;
+  itineraryTag?: string;
 }
 
 interface VideosTabProps {
+  videos: VideoCardData[];
+  isOwnProfile: boolean;
   onVideoClick: (id: string) => void;
+  onUploadVideo?: () => void;
+  onLinkTikTok?: () => void;
 }
 
-const MOCK_VIDEOS: VideoCardData[] = [
-  {
-    id: '1',
-    thumbnail: 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '2.3M',
-    itineraryTag: 'Paris on $300',
-  },
-  {
-    id: '2',
-    thumbnail: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '1.8M',
-    itineraryTag: 'Barcelona Budget',
-  },
-  {
-    id: '3',
-    thumbnail: 'https://images.pexels.com/photos/2147029/pexels-photo-2147029.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '950K',
-    itineraryTag: 'Lisbon Vibes',
-  },
-  {
-    id: '4',
-    thumbnail: 'https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '3.1M',
-    itineraryTag: 'Rome Must-See',
-  },
-  {
-    id: '5',
-    thumbnail: 'https://images.pexels.com/photos/2031706/pexels-photo-2031706.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '1.2M',
-    itineraryTag: 'Amsterdam Guide',
-  },
-  {
-    id: '6',
-    thumbnail: 'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '2.7M',
-    itineraryTag: 'Berlin Culture',
-  },
-  {
-    id: '7',
-    thumbnail: 'https://images.pexels.com/photos/1659438/pexels-photo-1659438.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '890K',
-    itineraryTag: 'Madrid Tapas',
-  },
-  {
-    id: '8',
-    thumbnail: 'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '1.5M',
-    itineraryTag: 'Prague Adventures',
-  },
-  {
-    id: '9',
-    thumbnail: 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400',
-    views: '2.1M',
-    itineraryTag: 'Vienna Classic',
-  },
-];
+const formatViews = (views: number): string => {
+  if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
+  if (views >= 1000) return `${(views / 1000).toFixed(1)}K`;
+  return views.toString();
+};
 
-export function VideosTab({ onVideoClick }: VideosTabProps) {
+export function VideosTab({ videos, isOwnProfile, onVideoClick, onUploadVideo, onLinkTikTok }: VideosTabProps) {
+  // Empty state when no videos
+  if (videos.length === 0) {
+    if (isOwnProfile) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-sunset flex items-center justify-center mb-6">
+            <Video className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            Share your travel moments
+          </h3>
+          <p className="text-gray-600 text-center mb-6 max-w-md">
+            Upload videos from your trips or connect your TikTok to showcase your adventures
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onUploadVideo}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                       hover:bg-coral-600 text-white font-semibold transition-all
+                       shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Video className="w-4 h-4" />
+              Upload Video
+            </button>
+            <button
+              onClick={onLinkTikTok}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-coral-500
+                       hover:bg-coral-50 text-coral-600 font-semibold transition-all
+                       transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Link className="w-4 h-4" />
+              Link TikTok
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <Video className="w-8 h-8 text-gray-400" />
+          </div>
+          <p className="text-gray-600 text-center">No videos yet</p>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="grid grid-cols-3 gap-4">
-      {MOCK_VIDEOS.map((video) => (
+      {videos.map((video) => (
         <button
           key={video.id}
           onClick={() => onVideoClick(video.id)}
@@ -95,16 +96,18 @@ export function VideosTab({ onVideoClick }: VideosTabProps) {
             <span className="px-2 py-1 rounded bg-black/70 text-white text-xs font-medium
                          flex items-center gap-1">
               <Eye className="w-3 h-3" />
-              {video.views}
+              {formatViews(video.views)}
             </span>
           </div>
 
-          <div className="absolute bottom-2 left-2 right-2">
-            <span className="px-2 py-1 rounded bg-black/80 text-white text-xs font-medium
-                         block truncate">
-              From: {video.itineraryTag}
-            </span>
-          </div>
+          {video.itineraryTag && (
+            <div className="absolute bottom-2 left-2 right-2">
+              <span className="px-2 py-1 rounded bg-black/80 text-white text-xs font-medium
+                           block truncate">
+                From: {video.itineraryTag}
+              </span>
+            </div>
+          )}
         </button>
       ))}
     </div>

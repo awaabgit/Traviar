@@ -4,9 +4,9 @@ import { MobileNav } from '../MobileNav';
 import { CreatorProfileHero, CreatorProfile } from './CreatorProfileHero';
 import { ProfileTabBar, ProfileTab } from './ProfileTabBar';
 import { ItinerariesTab, ItineraryCardData } from './ItinerariesTab';
-import { VideosTab } from './VideosTab';
+import { VideosTab, VideoCardData } from './VideosTab';
 import { VideoDrawer } from './VideoDrawer';
-import { CollectionsTab } from './CollectionsTab';
+import { CollectionsTab, CollectionCardData } from './CollectionsTab';
 import { AboutTab } from './AboutTab';
 import { CreatorRightPanel } from './CreatorRightPanel';
 import { CreateTripModal } from '../createTrip/CreateTripModal';
@@ -15,6 +15,8 @@ import { Eye, X, Loader2 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useCreatorItineraries } from '../../hooks/useCreatorItineraries';
+import { useCreatorVideos } from '../../hooks/useCreatorVideos';
+import { useCreatorCollections } from '../../hooks/useCreatorCollections';
 
 interface CreatorProfilePageProps {
   creatorId?: string;
@@ -33,6 +35,8 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
   const userId = creatorId || user?.id;
   const { profile, loading, error } = useProfile(userId);
   const { itineraries: marketplaceItineraries, loading: itinerariesLoading } = useCreatorItineraries(userId);
+  const { videos: travelVideos } = useCreatorVideos(userId);
+  const { collections: marketplaceCollections } = useCreatorCollections(userId);
 
   const handleFollow = () => {
     console.log('Follow clicked');
@@ -112,6 +116,38 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
     onViewModeChange('chat');
   };
 
+  const handleUploadVideo = () => {
+    console.log('Upload video clicked');
+    // TODO: Implement video upload functionality
+  };
+
+  const handleLinkTikTok = () => {
+    console.log('Link TikTok clicked');
+    // TODO: Implement TikTok linking functionality
+  };
+
+  // Map travel videos to VideoCardData format
+  const videoCards: VideoCardData[] = travelVideos.map((video) => ({
+    id: video.id,
+    thumbnail: video.thumbnail_url || 'https://via.placeholder.com/400x600',
+    views: video.view_count || 0,
+    itineraryTag: video.location_name,
+  }));
+
+  // Map marketplace collections to CollectionCardData format
+  const collectionCards: CollectionCardData[] = marketplaceCollections.map((collection) => ({
+    id: collection.id,
+    title: collection.title,
+    coverImage: collection.cover_image_url || 'https://via.placeholder.com/600',
+    description: collection.description || '',
+    itineraryCount: collection.itinerary_ids?.length || 0,
+  }));
+
+  const handleCreateCollection = () => {
+    console.log('Create collection clicked');
+    // TODO: Implement collection creation functionality
+  };
+
   return (
     <div className="h-screen flex flex-col bg-white">
       <div className="flex-1 flex overflow-hidden">
@@ -181,11 +217,22 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
                   )}
 
                   {activeTab === 'videos' && (
-                    <VideosTab onVideoClick={handleVideoClick} />
+                    <VideosTab
+                      videos={videoCards}
+                      isOwnProfile={isOwnProfile}
+                      onVideoClick={handleVideoClick}
+                      onUploadVideo={handleUploadVideo}
+                      onLinkTikTok={handleLinkTikTok}
+                    />
                   )}
 
                   {activeTab === 'collections' && (
-                    <CollectionsTab onCollectionClick={handleCollectionClick} />
+                    <CollectionsTab
+                      collections={collectionCards}
+                      isOwnProfile={isOwnProfile}
+                      onCollectionClick={handleCollectionClick}
+                      onCreateCollection={handleCreateCollection}
+                    />
                   )}
 
                   {activeTab === 'about' && <AboutTab />}
