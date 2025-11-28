@@ -237,7 +237,7 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
                     />
                   )}
 
-                  {activeTab === 'about' && <AboutTab />}
+                  {activeTab === 'about' && <AboutTab profile={profile || undefined} />}
                 </div>
               </>
             )}

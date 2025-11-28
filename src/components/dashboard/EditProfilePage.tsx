@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Save, Upload, X, CheckCircle, Loader2, Sparkles, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { Save, Upload, X, CheckCircle, Loader2, Sparkles, TrendingUp, DollarSign, Users, Plus, Trash2 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useUpdateProfile } from '../../hooks/useUpdateProfile';
+import { SocialLinks } from '../../types';
 
 const NICHE_TAGS = [
   'Budget Travel', 'Luxury Travel', 'Adventure', 'City Breaks', 'Beach',
@@ -14,6 +15,18 @@ const BUDGET_OPTIONS = [
   { value: 'low' as const, label: 'Budget' },
   { value: 'medium' as const, label: 'Mid-Range' },
   { value: 'high' as const, label: 'Luxury' },
+];
+
+const COMMON_LANGUAGES = [
+  'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese',
+  'Chinese', 'Japanese', 'Korean', 'Arabic', 'Hindi', 'Russian',
+  'Dutch', 'Swedish', 'Thai', 'Vietnamese', 'Turkish', 'Polish'
+];
+
+const POPULAR_DESTINATIONS = [
+  'Paris', 'Barcelona', 'Rome', 'London', 'Amsterdam', 'Berlin',
+  'Tokyo', 'Bali', 'Bangkok', 'New York', 'Los Angeles', 'Miami',
+  'Dubai', 'Singapore', 'Sydney', 'Mexico City', 'Lisbon', 'Prague'
 ];
 
 const PRESET_COVERS = [
@@ -42,6 +55,18 @@ export function EditProfilePage() {
   const [enablingCreator, setEnablingCreator] = useState(false);
   const [creatorEnabled, setCreatorEnabled] = useState(false);
 
+  // New About section fields
+  const [aboutMe, setAboutMe] = useState('');
+  const [yearsOfTravel, setYearsOfTravel] = useState<number | ''>('');
+  const [citiesVisited, setCitiesVisited] = useState<number | ''>('');
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [placesSpecialized, setPlacesSpecialized] = useState<string[]>([]);
+  const [creatorHighlights, setCreatorHighlights] = useState<string[]>([]);
+  const [newHighlight, setNewHighlight] = useState('');
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  const [customLanguage, setCustomLanguage] = useState('');
+  const [customPlace, setCustomPlace] = useState('');
+
   // Load profile data when it becomes available
   useEffect(() => {
     if (profile) {
@@ -51,6 +76,14 @@ export function EditProfilePage() {
       setBio(profile.bio || '');
       setSelectedTags(profile.travel_style || []);
       setBudgetRange(profile.preferred_budget_range || 'medium');
+      // Load new About section fields
+      setAboutMe(profile.about_me || '');
+      setYearsOfTravel(profile.years_of_travel || '');
+      setCitiesVisited(profile.cities_visited || '');
+      setLanguages(profile.languages || []);
+      setPlacesSpecialized(profile.places_specialized || []);
+      setCreatorHighlights(profile.creator_highlights || []);
+      setSocialLinks(profile.social_links || {});
     }
   }, [profile]);
 
@@ -73,6 +106,14 @@ export function EditProfilePage() {
       bio,
       travel_style: selectedTags,
       preferred_budget_range: budgetRange,
+      // Include new About section fields
+      about_me: aboutMe,
+      years_of_travel: yearsOfTravel === '' ? undefined : yearsOfTravel,
+      cities_visited: citiesVisited === '' ? undefined : citiesVisited,
+      languages,
+      places_specialized: placesSpecialized,
+      creator_highlights: creatorHighlights,
+      social_links: socialLinks,
     });
 
     if (result) {
@@ -80,6 +121,55 @@ export function EditProfilePage() {
       refetch(); // Refresh profile data
       setTimeout(() => setSaveSuccess(false), 3000);
     }
+  };
+
+  // Helper functions for tag-like inputs
+  const toggleLanguage = (lang: string) => {
+    if (languages.includes(lang)) {
+      setLanguages(languages.filter(l => l !== lang));
+    } else {
+      setLanguages([...languages, lang]);
+    }
+  };
+
+  const addCustomLanguage = () => {
+    if (customLanguage.trim() && !languages.includes(customLanguage.trim())) {
+      setLanguages([...languages, customLanguage.trim()]);
+      setCustomLanguage('');
+    }
+  };
+
+  const togglePlace = (place: string) => {
+    if (placesSpecialized.includes(place)) {
+      setPlacesSpecialized(placesSpecialized.filter(p => p !== place));
+    } else {
+      setPlacesSpecialized([...placesSpecialized, place]);
+    }
+  };
+
+  const addCustomPlace = () => {
+    if (customPlace.trim() && !placesSpecialized.includes(customPlace.trim())) {
+      setPlacesSpecialized([...placesSpecialized, customPlace.trim()]);
+      setCustomPlace('');
+    }
+  };
+
+  const addHighlight = () => {
+    if (newHighlight.trim() && creatorHighlights.length < 6) {
+      setCreatorHighlights([...creatorHighlights, newHighlight.trim()]);
+      setNewHighlight('');
+    }
+  };
+
+  const removeHighlight = (index: number) => {
+    setCreatorHighlights(creatorHighlights.filter((_, i) => i !== index));
+  };
+
+  const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
+    setSocialLinks(prev => ({
+      ...prev,
+      [platform]: value || undefined,
+    }));
   };
 
   const handleEnableCreatorMode = async () => {
@@ -298,6 +388,277 @@ export function EditProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* About Me Section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">About Me</h2>
+          <p className="text-sm text-gray-500">Share more details about yourself for your profile's About tab</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            About Me (Full Bio)
+          </label>
+          <textarea
+            value={aboutMe}
+            onChange={(e) => setAboutMe(e.target.value)}
+            maxLength={2000}
+            rows={6}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+            placeholder="Tell your story. What got you into traveling? What makes your travel style unique?..."
+          />
+          <p className="text-xs text-gray-500 mt-1">{aboutMe.length}/2000 characters</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Years of Travel Experience
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={yearsOfTravel}
+              onChange={(e) => setYearsOfTravel(e.target.value ? parseInt(e.target.value) : '')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="e.g. 5"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cities Visited
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="10000"
+              value={citiesVisited}
+              onChange={(e) => setCitiesVisited(e.target.value ? parseInt(e.target.value) : '')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="e.g. 50"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Languages
+          </label>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {COMMON_LANGUAGES.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => toggleLanguage(lang)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  languages.includes(lang)
+                    ? 'bg-coral-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customLanguage}
+              onChange={(e) => setCustomLanguage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomLanguage())}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="Add other language..."
+            />
+            <button
+              onClick={addCustomLanguage}
+              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          {languages.filter(l => !COMMON_LANGUAGES.includes(l)).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {languages.filter(l => !COMMON_LANGUAGES.includes(l)).map((lang) => (
+                <span
+                  key={lang}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-coral-500 text-white flex items-center gap-1"
+                >
+                  {lang}
+                  <button onClick={() => toggleLanguage(lang)} className="hover:bg-coral-600 rounded-full p-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Places I Specialize In
+          </label>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {POPULAR_DESTINATIONS.map((place) => (
+              <button
+                key={place}
+                onClick={() => togglePlace(place)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  placesSpecialized.includes(place)
+                    ? 'bg-coral-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {place}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customPlace}
+              onChange={(e) => setCustomPlace(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomPlace())}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="Add other destination..."
+            />
+            <button
+              onClick={addCustomPlace}
+              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          {placesSpecialized.filter(p => !POPULAR_DESTINATIONS.includes(p)).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {placesSpecialized.filter(p => !POPULAR_DESTINATIONS.includes(p)).map((place) => (
+                <span
+                  key={place}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-coral-500 text-white flex items-center gap-1"
+                >
+                  {place}
+                  <button onClick={() => togglePlace(place)} className="hover:bg-coral-600 rounded-full p-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Social Links Section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Social Links</h2>
+          <p className="text-sm text-gray-500">Add your social media profiles so visitors can connect with you</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              TikTok
+            </label>
+            <input
+              type="url"
+              value={socialLinks.tiktok || ''}
+              onChange={(e) => updateSocialLink('tiktok', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="https://tiktok.com/@username"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Instagram
+            </label>
+            <input
+              type="url"
+              value={socialLinks.instagram || ''}
+              onChange={(e) => updateSocialLink('instagram', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="https://instagram.com/username"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              YouTube
+            </label>
+            <input
+              type="url"
+              value={socialLinks.youtube || ''}
+              onChange={(e) => updateSocialLink('youtube', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="https://youtube.com/@channel"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Website
+            </label>
+            <input
+              type="url"
+              value={socialLinks.website || ''}
+              onChange={(e) => updateSocialLink('website', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+              placeholder="https://yourwebsite.com"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Creator Highlights Section - Only for Creators */}
+      {profile?.is_creator && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Creator Highlights</h2>
+            <p className="text-sm text-gray-500">Add achievements or highlights to showcase on your profile (max 6)</p>
+          </div>
+
+          <div className="space-y-3">
+            {creatorHighlights.map((highlight, index) => (
+              <div key={index} className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+                <div className="w-6 h-6 rounded-full bg-coral-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-coral-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="flex-1 text-gray-700">{highlight}</span>
+                <button
+                  onClick={() => removeHighlight(index)}
+                  className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            {creatorHighlights.length < 6 && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newHighlight}
+                  onChange={(e) => setNewHighlight(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHighlight())}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
+                  placeholder="e.g. Featured in Travel + Leisure Magazine"
+                />
+                <button
+                  onClick={addHighlight}
+                  disabled={!newHighlight.trim()}
+                  className="px-4 py-2 rounded-lg bg-coral-500 hover:bg-coral-600 text-white font-medium transition-all
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {updateError && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
