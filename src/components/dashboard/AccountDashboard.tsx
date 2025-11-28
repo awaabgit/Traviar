@@ -20,13 +20,20 @@ import { TaxInformationPage } from './TaxInformationPage';
 import { HelpCenterPage } from './HelpCenterPage';
 import { MessagesDrawer } from './MessagesDrawer';
 import { ViewMode } from '../../types';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
 
 interface AccountDashboardProps {
   onBackToApp: (mode: ViewMode) => void;
 }
 
 export function AccountDashboard({ onBackToApp }: AccountDashboardProps) {
-  const [currentPage, setCurrentPage] = useState<DashboardPage>('overview');
+  const { user } = useAuthContext();
+  const { profile } = useProfile(user?.id);
+  const isCreator = profile?.is_creator || false;
+
+  // Default to 'edit-profile' for non-creators, 'overview' for creators
+  const [currentPage, setCurrentPage] = useState<DashboardPage>(isCreator ? 'overview' : 'edit-profile');
   const [showMessages, setShowMessages] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -93,6 +100,7 @@ export function AccountDashboard({ onBackToApp }: AccountDashboardProps) {
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         onBackToTraviar={() => onBackToApp('profile')}
+        isCreator={isCreator}
       />
 
       <main className="flex-1 overflow-y-auto p-8">

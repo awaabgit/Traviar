@@ -9,6 +9,7 @@ import { ChatView } from './components/chatView/ChatView';
 import { CollectionsPage } from './components/collections/CollectionsPage';
 import { CreatorProfilePage } from './components/profile/CreatorProfilePage';
 import { AccountDashboard } from './components/dashboard/AccountDashboard';
+import { EditProfileStandalone } from './components/dashboard/EditProfileStandalone';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { AuthModalManager } from './components/auth/AuthModalManager';
 import { ProtectedView } from './components/auth/ProtectedView';
@@ -39,7 +40,7 @@ function AppContent() {
   };
 
   // Protected view modes that require authentication
-  const protectedViews: ViewMode[] = ['itinerary', 'collections', 'profile', 'dashboard'];
+  const protectedViews: ViewMode[] = ['itinerary', 'collections', 'profile', 'dashboard', 'edit-profile'];
   const isProtectedView = protectedViews.includes(viewMode);
 
   if (loading) {
@@ -113,6 +114,23 @@ function AppContent() {
         >
           <div className="animate-fade-in">
             <AccountDashboard onBackToApp={setViewMode} />
+          </div>
+        </ProtectedView>
+        <AuthModalManager isOpen={showAuthModal} onClose={handleCloseAuthModal} />
+      </>
+    );
+  }
+
+  if (viewMode === 'edit-profile') {
+    return (
+      <>
+        <ProtectedView
+          onRequireAuth={handleRequireAuth}
+          emptyStateTitle="Edit Profile"
+          emptyStateMessage="Please login or signup to edit your profile"
+        >
+          <div className="animate-fade-in">
+            <EditProfileStandalone onBack={() => setViewMode('profile')} />
           </div>
         </ProtectedView>
         <AuthModalManager isOpen={showAuthModal} onClose={handleCloseAuthModal} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Upload, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Save, Upload, X, CheckCircle, Loader2, Sparkles, TrendingUp, DollarSign, Users } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useUpdateProfile } from '../../hooks/useUpdateProfile';
@@ -39,6 +39,8 @@ export function EditProfilePage() {
   const [budgetRange, setBudgetRange] = useState<'low' | 'medium' | 'high'>('medium');
   const [showCoverModal, setShowCoverModal] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [enablingCreator, setEnablingCreator] = useState(false);
+  const [creatorEnabled, setCreatorEnabled] = useState(false);
 
   // Load profile data when it becomes available
   useEffect(() => {
@@ -78,6 +80,23 @@ export function EditProfilePage() {
       refetch(); // Refresh profile data
       setTimeout(() => setSaveSuccess(false), 3000);
     }
+  };
+
+  const handleEnableCreatorMode = async () => {
+    if (!user?.id) return;
+
+    setEnablingCreator(true);
+
+    const result = await updateProfile(user.id, {
+      is_creator: true,
+    });
+
+    if (result) {
+      setCreatorEnabled(true);
+      refetch(); // Refresh profile data to show Creator Dashboard button
+    }
+
+    setEnablingCreator(false);
   };
 
   if (loadingProfile) {
@@ -293,6 +312,90 @@ export function EditProfilePage() {
           <div>
             <p className="text-green-700 font-medium">Profile updated successfully!</p>
             <p className="text-sm text-green-600 mt-1">Your changes have been saved.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Become a Creator Section - Only show for non-creators */}
+      {!profile?.is_creator && !creatorEnabled && (
+        <div className="bg-gradient-to-br from-coral-50 to-orange-50 rounded-xl border border-coral-200 p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral-400 to-coral-600
+                          flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Become a Creator</h2>
+              <p className="text-gray-600 mb-4">
+                Start selling your travel itineraries and earn money from your adventures.
+                Share your unique travel experiences with travelers worldwide.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-coral-100">
+                  <DollarSign className="w-5 h-5 text-coral-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Earn Money</p>
+                    <p className="text-xs text-gray-500">Sell your itineraries</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-coral-100">
+                  <TrendingUp className="w-5 h-5 text-coral-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Track Analytics</p>
+                    <p className="text-xs text-gray-500">See your performance</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-coral-100">
+                  <Users className="w-5 h-5 text-coral-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Build Audience</p>
+                    <p className="text-xs text-gray-500">Grow your followers</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleEnableCreatorMode}
+                disabled={enablingCreator}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                         hover:bg-coral-600 text-white font-semibold transition-all
+                         shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {enablingCreator ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Enable Creator Mode
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Creator Mode Enabled Success Message */}
+      {creatorEnabled && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-green-800 mb-2">Creator Mode Enabled!</h2>
+              <p className="text-green-700 mb-4">
+                Congratulations! You're now a creator. Return to your profile to access the Creator Dashboard
+                where you can manage your itineraries, track analytics, and start earning.
+              </p>
+              <p className="text-sm text-green-600">
+                The "Creator Dashboard" button will now appear on your profile page.
+              </p>
+            </div>
           </div>
         </div>
       )}

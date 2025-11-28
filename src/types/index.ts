@@ -176,7 +176,7 @@ export interface VideoTag {
   created_at: string;
 }
 
-export type ViewMode = 'explore' | 'itinerary' | 'marketplace' | 'budget' | 'chat' | 'collections' | 'profile' | 'dashboard';
+export type ViewMode = 'explore' | 'itinerary' | 'marketplace' | 'budget' | 'chat' | 'collections' | 'profile' | 'dashboard' | 'edit-profile';
 export type RightPanelMode = 'map' | 'chat';
 
 export interface MarketplaceCreator {

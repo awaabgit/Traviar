@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Play, Settings, User, Edit3, LogOut, ChevronDown } from 'lucide-react';
+import { Eye, Play, Settings, User, Edit3, LogOut, ChevronDown, BarChart3 } from 'lucide-react';
 import { MapView } from '../MapView';
 
 type PanelMode = 'media' | 'map' | 'discover';
@@ -11,6 +11,8 @@ interface CreatorRightPanelProps {
   onToggleVisitorView?: () => void;
   onEditProfile?: () => void;
   onAccountSettings?: () => void;
+  onCreatorDashboard?: () => void;
+  isCreator?: boolean;
 }
 
 const MOCK_MEDIA = [
@@ -83,7 +85,9 @@ export function CreatorRightPanel({
   isVisitorView = false,
   onToggleVisitorView,
   onEditProfile,
-  onAccountSettings
+  onAccountSettings,
+  onCreatorDashboard,
+  isCreator = false
 }: CreatorRightPanelProps) {
   const [mode, setMode] = useState<PanelMode>('media');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -133,10 +137,28 @@ export function CreatorRightPanel({
                   </div>
                 </button>
 
+                {isCreator && (
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
+                             transition-all text-left border-t border-gray-100 hover:scale-[1.01] group"
+                    style={{ animationDelay: '50ms' }}
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      onCreatorDashboard?.();
+                    }}
+                  >
+                    <BarChart3 className="w-4 h-4 text-gray-600 group-hover:scale-110 transition-transform" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Creator Dashboard</p>
+                      <p className="text-xs text-gray-500">Analytics, sales & content management</p>
+                    </div>
+                  </button>
+                )}
+
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
                            transition-all text-left border-t border-gray-100 hover:scale-[1.01] group"
-                  style={{ animationDelay: '50ms' }}
+                  style={{ animationDelay: isCreator ? '100ms' : '50ms' }}
                   onClick={() => {
                     setIsDropdownOpen(false);
                     onAccountSettings?.();
@@ -152,7 +174,7 @@ export function CreatorRightPanel({
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
                            transition-all text-left border-t border-gray-100 hover:scale-[1.01] group"
-                  style={{ animationDelay: '100ms' }}
+                  style={{ animationDelay: isCreator ? '150ms' : '100ms' }}
                   onClick={() => {
                     setIsDropdownOpen(false);
                     onToggleVisitorView?.();
@@ -168,7 +190,7 @@ export function CreatorRightPanel({
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50
                            transition-all text-left border-t border-gray-100 hover:scale-[1.01] group"
-                  style={{ animationDelay: '150ms' }}
+                  style={{ animationDelay: isCreator ? '200ms' : '150ms' }}
                   onClick={() => {
                     setIsDropdownOpen(false);
                     console.log('Log Out');

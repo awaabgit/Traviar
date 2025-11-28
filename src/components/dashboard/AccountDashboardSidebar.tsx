@@ -49,11 +49,13 @@ interface AccountDashboardSidebarProps {
   currentPage: DashboardPage;
   onPageChange: (page: DashboardPage) => void;
   onBackToTraviar: () => void;
+  isCreator?: boolean;
 }
 
 interface NavSection {
   title: string;
   items: NavItem[];
+  creatorOnly?: boolean;
 }
 
 interface NavItem {
@@ -62,72 +64,81 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const NAV_SECTIONS: NavSection[] = [
-  {
-    title: 'Dashboard',
-    items: [
-      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: 'Profile & Content',
-    items: [
-      { id: 'edit-profile', label: 'Edit Profile', icon: User },
-      { id: 'media-manager', label: 'Media Manager', icon: Image },
-      { id: 'collections-manager', label: 'Collections', icon: Layers },
-    ],
-  },
-  {
-    title: 'Marketplace & Sales',
-    items: [
-      { id: 'my-itineraries', label: 'My Itineraries', icon: FileText },
-      { id: 'sales-dashboard', label: 'Sales Dashboard', icon: TrendingUp },
-      { id: 'pricing-discounts', label: 'Pricing & Discounts', icon: DollarSign },
-      { id: 'reviews-ratings', label: 'Reviews & Ratings', icon: Star },
-    ],
-  },
-  {
-    title: 'Business & Analytics',
-    items: [
-      { id: 'analytics-overview', label: 'Analytics Overview', icon: BarChart3 },
-      { id: 'audience-insights', label: 'Audience Insights', icon: Users },
-      { id: 'revenue-reports', label: 'Revenue Reports', icon: FileBarChart },
-    ],
-  },
-  {
-    title: 'Account & Security',
-    items: [
-      { id: 'account-settings', label: 'Account Settings', icon: Settings },
-      { id: 'privacy-settings', label: 'Privacy Settings', icon: Shield },
-      { id: 'security-settings', label: 'Security & Login', icon: Shield },
-      { id: 'notifications', label: 'Notifications', icon: Bell },
-    ],
-  },
-  {
-    title: 'Payouts & Billing',
-    items: [
-      { id: 'payout-methods', label: 'Payout Methods', icon: CreditCard },
-      { id: 'transaction-history', label: 'Transaction History', icon: Receipt },
-      { id: 'tax-information', label: 'Tax Information', icon: FileSpreadsheet },
-    ],
-  },
-  {
-    title: 'Help & Support',
-    items: [
-      { id: 'help-center', label: 'Help Center', icon: HelpCircle },
-    ],
-  },
+// Base sections available to all users
+const PROFILE_CONTENT_SECTION: NavSection = {
+  title: 'Profile & Content',
+  items: [
+    { id: 'edit-profile', label: 'Edit Profile', icon: User },
+    { id: 'media-manager', label: 'Media Manager', icon: Image },
+    { id: 'collections-manager', label: 'Collections', icon: Layers },
+  ],
+};
+
+// Creator-only section with consolidated dashboard items
+const CREATOR_DASHBOARD_SECTION: NavSection = {
+  title: 'Creator Dashboard',
+  creatorOnly: true,
+  items: [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'analytics-overview', label: 'Business & Analytics', icon: BarChart3 },
+    { id: 'my-itineraries', label: 'My Itineraries', icon: FileText },
+    { id: 'sales-dashboard', label: 'Sales Dashboard', icon: TrendingUp },
+    { id: 'pricing-discounts', label: 'Pricing & Discounts', icon: DollarSign },
+    { id: 'reviews-ratings', label: 'Reviews & Ratings', icon: Star },
+    { id: 'audience-insights', label: 'Audience Insights', icon: Users },
+    { id: 'revenue-reports', label: 'Revenue Reports', icon: FileBarChart },
+  ],
+};
+
+const ACCOUNT_SECURITY_SECTION: NavSection = {
+  title: 'Account & Security',
+  items: [
+    { id: 'account-settings', label: 'Account Settings', icon: Settings },
+    { id: 'privacy-settings', label: 'Privacy Settings', icon: Shield },
+    { id: 'security-settings', label: 'Security & Login', icon: Shield },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+  ],
+};
+
+const PAYOUTS_BILLING_SECTION: NavSection = {
+  title: 'Payouts & Billing',
+  creatorOnly: true,
+  items: [
+    { id: 'payout-methods', label: 'Payout Methods', icon: CreditCard },
+    { id: 'transaction-history', label: 'Transaction History', icon: Receipt },
+    { id: 'tax-information', label: 'Tax Information', icon: FileSpreadsheet },
+  ],
+};
+
+const HELP_SUPPORT_SECTION: NavSection = {
+  title: 'Help & Support',
+  items: [
+    { id: 'help-center', label: 'Help Center', icon: HelpCircle },
+  ],
+};
+
+const ALL_SECTIONS: NavSection[] = [
+  PROFILE_CONTENT_SECTION,
+  CREATOR_DASHBOARD_SECTION,
+  ACCOUNT_SECURITY_SECTION,
+  PAYOUTS_BILLING_SECTION,
+  HELP_SUPPORT_SECTION,
 ];
 
 export function AccountDashboardSidebar({
   currentPage,
   onPageChange,
   onBackToTraviar,
+  isCreator = false,
 }: AccountDashboardSidebarProps) {
+  // Filter sections based on creator status
+  const navSections = ALL_SECTIONS.filter(
+    (section) => !section.creatorOnly || isCreator
+  );
+
   const [expandedSections, setExpandedSections] = useState<string[]>([
-    'Dashboard',
     'Profile & Content',
-    'Marketplace & Sales',
+    'Creator Dashboard',
   ]);
 
   const toggleSection = (title: string) => {
@@ -152,7 +163,7 @@ export function AccountDashboardSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {NAV_SECTIONS.map((section) => {
+        {navSections.map((section) => {
           const isExpanded = expandedSections.includes(section.title);
 
           return (

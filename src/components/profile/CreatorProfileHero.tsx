@@ -1,4 +1,4 @@
-import { MapPin, Star, Globe, MessageCircle, UserPlus, Video, Settings } from 'lucide-react';
+import { MapPin, Star, Globe, MessageCircle, UserPlus, Video, Settings, BarChart3 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 export interface CreatorProfile {
@@ -30,9 +30,11 @@ interface CreatorProfileHeroProps {
   onMessage: () => void;
   onViewTikTok: () => void;
   onEditProfile?: () => void;
+  onCreatorDashboard?: () => void;
+  isCreator?: boolean;
 }
 
-export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok, onEditProfile }: CreatorProfileHeroProps) {
+export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok, onEditProfile, onCreatorDashboard, isCreator = false }: CreatorProfileHeroProps) {
   const { user } = useAuthContext();
   const isOwnProfile = user?.id === profile.id;
 
@@ -233,15 +235,28 @@ export function CreatorProfileHero({ profile, onFollow, onMessage, onViewTikTok,
 
         <div className="flex items-center gap-3">
           {isOwnProfile ? (
-            <button
-              onClick={onEditProfile}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
-                       hover:bg-coral-600 text-white font-semibold transition-all
-                       shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Settings className="w-4 h-4" />
-              Edit Profile
-            </button>
+            <>
+              <button
+                onClick={onEditProfile}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-coral-500
+                         hover:bg-coral-600 text-white font-semibold transition-all
+                         shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Settings className="w-4 h-4" />
+                Edit Profile
+              </button>
+              {isCreator && (
+                <button
+                  onClick={onCreatorDashboard}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900
+                           hover:bg-gray-800 text-white font-semibold transition-all
+                           shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Creator Dashboard
+                </button>
+              )}
+            </>
           ) : (
             <>
               <button

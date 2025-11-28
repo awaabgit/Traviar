@@ -200,7 +200,9 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
                   onFollow={handleFollow}
                   onMessage={handleMessage}
                   onViewTikTok={handleViewTikTok}
-                  onEditProfile={() => onViewModeChange('dashboard')}
+                  onEditProfile={() => onViewModeChange('edit-profile')}
+                  onCreatorDashboard={() => onViewModeChange('dashboard')}
+                  isCreator={profile?.is_creator || false}
                 />
 
                 <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -247,8 +249,10 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
           isOwnProfile={isOwnProfile}
           isVisitorView={isVisitorView}
           onToggleVisitorView={() => setIsVisitorView(!isVisitorView)}
-          onEditProfile={() => onViewModeChange('dashboard')}
+          onEditProfile={() => onViewModeChange('edit-profile')}
           onAccountSettings={() => onViewModeChange('dashboard')}
+          onCreatorDashboard={() => onViewModeChange('dashboard')}
+          isCreator={profile?.is_creator || false}
         />
       </div>
 
