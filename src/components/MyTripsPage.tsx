@@ -26,6 +26,21 @@ export function MyTripsPage({ onSelectTrip }: MyTripsPageProps) {
     renameTrip,
   } = useUserTrips();
 
+  // Debug: Log the trips data received from the hook
+  console.log('MyTripsPage: Data from useUserTrips:', {
+    tripsCount: trips.length,
+    trips: trips.map(t => ({ id: t.id, name: t.trip_name, status: t.trip_status })),
+    groupedTrips: {
+      upcoming: groupedTrips.upcoming.length,
+      inProgress: groupedTrips.inProgress.length,
+      drafts: groupedTrips.drafts.length,
+      past: groupedTrips.past.length,
+      shared: groupedTrips.shared.length,
+    },
+    loading,
+    filter,
+  });
+
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [createTripModalOpen, setCreateTripModalOpen] = useState(false);
@@ -112,10 +127,16 @@ export function MyTripsPage({ onSelectTrip }: MyTripsPageProps) {
 
   const renderTripSection = (
     title: string,
-    trips: typeof groupedTrips.upcoming,
+    sectionTrips: typeof groupedTrips.upcoming,
     sectionKey: keyof typeof expandedSections
   ) => {
-    if (trips.length === 0) return null;
+    console.log(`MyTripsPage: renderTripSection "${title}":`, {
+      tripsCount: sectionTrips.length,
+      isExpanded: expandedSections[sectionKey],
+      trips: sectionTrips.map(t => t.trip_name)
+    });
+
+    if (sectionTrips.length === 0) return null;
 
     return (
       <div className="mb-8">
@@ -126,7 +147,7 @@ export function MyTripsPage({ onSelectTrip }: MyTripsPageProps) {
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-gray-900">{title}</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
-              {trips.length}
+              {sectionTrips.length}
             </span>
           </div>
           {expandedSections[sectionKey] ? (
@@ -138,7 +159,7 @@ export function MyTripsPage({ onSelectTrip }: MyTripsPageProps) {
 
         {expandedSections[sectionKey] && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-            {trips.map(trip => (
+            {sectionTrips.map(trip => (
               <MyTripCard
                 key={trip.id}
                 trip={trip}

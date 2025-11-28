@@ -6,6 +6,7 @@ interface ModernCalendarProps {
   endDate: string;
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
+  onDatesChange?: (startDate: string, endDate: string) => void; // Atomic update
 }
 
 export function ModernCalendar({
@@ -13,7 +14,11 @@ export function ModernCalendar({
   endDate,
   onStartDateChange,
   onEndDateChange,
+  onDatesChange,
 }: ModernCalendarProps) {
+  // Debug: Log props at component render
+  console.log('ModernCalendar render - startDate:', startDate, 'endDate:', endDate);
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     const date = startDate ? new Date(startDate) : new Date();
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -53,18 +58,38 @@ export function ModernCalendar({
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
+  // Helper to update dates - uses atomic update if available, otherwise individual updates
+  const updateDates = (newStart: string, newEnd: string) => {
+    console.log('updateDates called:', { newStart, newEnd });
+    if (onDatesChange) {
+      // Atomic update - no stale closure issues
+      onDatesChange(newStart, newEnd);
+    } else {
+      // Fallback to individual updates (may have stale closure issues)
+      onStartDateChange(newStart);
+      onEndDateChange(newEnd);
+    }
+  };
+
   const handleDateClick = (date: string) => {
+    console.log('=== handleDateClick ===');
+    console.log('Clicked date:', date);
+    console.log('Current props - startDate:', startDate, 'endDate:', endDate);
+
     if (!startDate || (startDate && endDate)) {
-      onStartDateChange(date);
-      onEndDateChange('');
+      console.log('Action: Setting NEW start date to:', date, '(clearing end date)');
+      updateDates(date, '');
     } else if (startDate && !endDate) {
       if (new Date(date) < new Date(startDate)) {
-        onStartDateChange(date);
-        onEndDateChange(startDate);
+        console.log('Action: Selected date is before start, swapping');
+        console.log('New start:', date, 'New end:', startDate);
+        updateDates(date, startDate);
       } else {
-        onEndDateChange(date);
+        console.log('Action: Setting end date to:', date);
+        updateDates(startDate, date);
       }
     }
+    console.log('=== handleDateClick complete ===');
   };
 
   const isDateInRange = (date: string): boolean => {
@@ -74,15 +99,24 @@ export function ModernCalendar({
     const end = endDate ? new Date(endDate) : (hoverDate ? new Date(hoverDate) : null);
 
     if (!end) return false;
-    return checkDate >= start && checkDate <= end;
+    const inRange = checkDate >= start && checkDate <= end;
+    return inRange;
   };
 
   const isStartDate = (date: string): boolean => {
-    return startDate === date;
+    const result = startDate === date;
+    if (result) {
+      console.log('isStartDate TRUE for:', date, '(startDate prop is:', startDate, ')');
+    }
+    return result;
   };
 
   const isEndDate = (date: string): boolean => {
-    return endDate === date || (!endDate && hoverDate === date && startDate && new Date(date) > new Date(startDate));
+    const result = endDate === date || (!endDate && hoverDate === date && !!startDate && new Date(date) > new Date(startDate));
+    if (result) {
+      console.log('isEndDate TRUE for:', date, '(endDate prop is:', endDate, ')');
+    }
+    return result;
   };
 
   const nextMonth = () => {
@@ -126,13 +160,24 @@ export function ModernCalendar({
             const isEnd = isEndDate(dateStr);
             const inRange = isDateInRange(dateStr);
             const isToday = dateStr === new Date().toISOString().split('T')[0];
-            const isPast = new Date(dateStr) < new Date(new Date().setHours(0, 0, 0, 0));
+
+            // Fix: Create today's date properly and compare date strings
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(dateStr);
+            selectedDate.setHours(0, 0, 0, 0);
+            const isPast = selectedDate < today;
+
+            // Debug: Log when we find a start or end date
+            if (isStart || isEnd) {
+              console.log('RENDERING selected date:', dateStr, '| isStart:', isStart, '| isEnd:', isEnd, '| inRange:', inRange);
+            }
 
             return (
               <button
                 key={day}
                 type="button"
-                onClick={() => !isPast && handleDateClick(dateStr)}
+                onClick={() => handleDateClick(dateStr)}
                 onMouseEnter={() => !isPast && setHoverDate(dateStr)}
                 onMouseLeave={() => setHoverDate(null)}
                 disabled={isPast}

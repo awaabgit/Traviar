@@ -119,25 +119,31 @@ export function CreateTripModal({ isOpen, onClose, flowType, onSuccess }: Create
         ? exactDates.endDate
         : new Date(Date.now() + flexibleDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+      const tripData = {
+        user_id: user.id,
+        trip_name: tripName.trim(),
+        destination: destinations[0].name,
+        start_date: startDate,
+        end_date: endDate,
+        hero_image_url: destinations[0].imageUrl,
+        thumbnail_url: destinations[0].imageUrl,
+        trip_status: 'draft',
+        travelers_count: travelers,
+        is_shared: false,
+        locations: destinations.map(d => d.name),
+        budget_tier: budget,
+        categories: categories,
+      };
+
+      console.log('CreateTripModal: Inserting trip with data:', tripData);
+
       const { data, error: insertError } = await supabase
         .from('user_trips')
-        .insert({
-          user_id: user.id,
-          trip_name: tripName.trim(),
-          destination: destinations[0].name,
-          start_date: startDate,
-          end_date: endDate,
-          hero_image_url: destinations[0].imageUrl,
-          thumbnail_url: destinations[0].imageUrl,
-          trip_status: 'draft',
-          travelers_count: travelers,
-          is_shared: false,
-          locations: destinations.map(d => d.name),
-          budget_tier: budget,
-          categories: categories,
-        })
+        .insert(tripData)
         .select()
         .single();
+
+      console.log('CreateTripModal: Insert result:', { data, error: insertError });
 
       if (insertError) throw insertError;
 

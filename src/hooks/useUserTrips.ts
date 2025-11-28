@@ -32,8 +32,35 @@ export function useUserTrips() {
   const [filter, setFilter] = useState<TripFilter>('all');
   const [sort, setSort] = useState<TripSort>('recent');
 
+  // Debug: Track when the hook re-renders and what state it has
+  console.log('useUserTrips RENDER:', {
+    tripsStateLength: trips.length,
+    loading,
+    filter,
+    sort
+  });
+
   useEffect(() => {
-    fetchTrips();
+    // Check auth state first, then fetch trips
+    const initFetch = async () => {
+      // Wait for auth to be ready
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('useUserTrips: Initial auth session check:', {
+        hasSession: !!session,
+        userId: session?.user?.id
+      });
+      fetchTrips();
+    };
+
+    initFetch();
+
+    // Also listen for auth state changes to refetch
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('useUserTrips: Auth state changed:', event, session?.user?.id);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchTrips();
+      }
+    });
 
     const channel = supabase
       .channel('user_trips_changes')
@@ -47,6 +74,7 @@ export function useUserTrips() {
       .subscribe();
 
     return () => {
+      subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -56,11 +84,26 @@ export function useUserTrips() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
 
+      console.log('useUserTrips: Fetching trips for user:', user?.id);
+
       if (!user) {
+        console.log('useUserTrips: No user authenticated, clearing trips');
         setTrips([]);
         setLoading(false);
         return;
       }
+
+      // Debug: First check if any trips exist at all
+      const { data: allTrips, error: allTripsError } = await supabase
+        .from('user_trips')
+        .select('id, user_id, trip_name')
+        .limit(5);
+
+      console.log('useUserTrips: DEBUG - All trips in table (first 5):', {
+        allTrips,
+        allTripsError,
+        currentUserId: user.id
+      });
 
       const { data, error: fetchError } = await supabase
         .from('user_trips')
@@ -68,18 +111,32 @@ export function useUserTrips() {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      console.log('useUserTrips: Query result:', {
+        dataCount: data?.length,
+        data,
+        error: fetchError,
+        userId: user.id
+      });
+
+      if (fetchError) {
+        console.error('useUserTrips: Supabase error details:', fetchError);
+        throw fetchError;
+      }
 
       const tripsWithStatus = (data || []).map(trip => ({
         ...trip,
         trip_status: calculateTripStatus(trip.start_date, trip.end_date, trip.trip_status)
       }));
 
+      console.log('useUserTrips: Processed trips:', tripsWithStatus);
+      console.log('useUserTrips: About to call setTrips with', tripsWithStatus.length, 'trips');
+
       setTrips(tripsWithStatus);
+      console.log('useUserTrips: setTrips called, state update scheduled');
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch trips');
-      console.error('Error fetching trips:', err);
+      console.error('useUserTrips: Error fetching trips:', err);
     } finally {
       setLoading(false);
     }
@@ -135,11 +192,23 @@ export function useUserTrips() {
 
   const groupedTrips = {
     upcoming: sortedTrips.filter(t => t.trip_status === 'upcoming'),
-    inProgress: sortedTrips.filter(t => t.trip_status === 'in_progress'),
+    // Include both 'in_progress' and 'draft' trips in the inProgress group
+    inProgress: sortedTrips.filter(t => t.trip_status === 'in_progress' || t.trip_status === 'draft'),
     past: sortedTrips.filter(t => t.trip_status === 'past'),
-    drafts: sortedTrips.filter(t => t.trip_status === 'draft'),
     shared: sortedTrips.filter(t => t.is_shared),
   };
+
+  // Debug: Log the grouping results
+  console.log('useUserTrips: Grouping debug:', {
+    sortedTripsCount: sortedTrips.length,
+    tripStatuses: sortedTrips.map(t => ({ name: t.trip_name, status: t.trip_status })),
+    groupedCounts: {
+      upcoming: groupedTrips.upcoming.length,
+      inProgress: groupedTrips.inProgress.length,
+      past: groupedTrips.past.length,
+      shared: groupedTrips.shared.length,
+    }
+  });
 
   const deleteTrip = async (tripId: string) => {
     try {

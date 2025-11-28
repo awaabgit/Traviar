@@ -1,8 +1,8 @@
 import { Plus } from 'lucide-react';
 
 interface MyTripsHeaderProps {
-  activeTab: 'upcoming' | 'in_progress' | 'past' | 'saved' | 'drafts';
-  onTabChange: (tab: 'upcoming' | 'in_progress' | 'past' | 'saved' | 'drafts') => void;
+  activeTab: 'upcoming' | 'in_progress' | 'past' | 'saved';
+  onTabChange: (tab: 'upcoming' | 'in_progress' | 'past' | 'saved') => void;
   onCreateTrip: () => void;
 }
 
@@ -12,7 +12,6 @@ export function MyTripsHeader({ activeTab, onTabChange, onCreateTrip }: MyTripsH
     { id: 'in_progress' as const, label: 'In Progress' },
     { id: 'past' as const, label: 'Past Trips' },
     { id: 'saved' as const, label: 'Saved' },
-    { id: 'drafts' as const, label: 'Drafts' },
   ];
 
   return (

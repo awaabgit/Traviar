@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUserTrips } from '../hooks/useUserTrips';
 import { MyTripsHeader } from './myTrips/MyTripsHeader';
-import { ActiveTripHero } from './myTrips/ActiveTripHero';
-import { DayChips } from './myTrips/DayChips';
 import { TripCardGrid } from './myTrips/TripCardGrid';
 import { PastTripsCarousel } from './myTrips/PastTripsCarousel';
 import { CreateTripModal } from './createTrip/CreateTripModal';
@@ -11,19 +9,43 @@ interface MyTripsPageNewProps {
   onSelectTrip: (tripId: string) => void;
 }
 
-type TabType = 'upcoming' | 'in_progress' | 'past' | 'saved' | 'drafts';
+type TabType = 'upcoming' | 'in_progress' | 'past' | 'saved';
 
 export function MyTripsPageNew({ onSelectTrip }: MyTripsPageNewProps) {
   const { trips, groupedTrips, loading } = useUserTrips();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
-  const [selectedDay, setSelectedDay] = useState(1);
   const [createTripModalOpen, setCreateTripModalOpen] = useState(false);
   const [createTripFlow, setCreateTripFlow] = useState<'manual' | 'ai'>('manual');
 
-  const activeTrip = groupedTrips.inProgress[0];
   const upcomingTrips = groupedTrips.upcoming;
+  const inProgressTrips = groupedTrips.inProgress; // Now includes both in_progress and draft trips
   const pastTrips = groupedTrips.past;
-  const draftTrips = groupedTrips.drafts;
+
+  // Debug: Log what's being rendered
+  console.log('MyTripsPageNew RENDER:', {
+    activeTab,
+    totalTrips: trips.length,
+    grouped: {
+      upcoming: upcomingTrips.length,
+      inProgress: inProgressTrips.length,
+      past: pastTrips.length,
+    },
+    loading
+  });
+
+  // Auto-select the first tab that has trips when data loads
+  useEffect(() => {
+    if (!loading && trips.length > 0) {
+      // Check tabs in priority order and select the first one with trips
+      if (groupedTrips.inProgress.length > 0) {
+        setActiveTab('in_progress');
+      } else if (groupedTrips.upcoming.length > 0) {
+        setActiveTab('upcoming');
+      } else if (groupedTrips.past.length > 0) {
+        setActiveTab('past');
+      }
+    }
+  }, [loading, trips.length, groupedTrips.inProgress.length, groupedTrips.upcoming.length, groupedTrips.past.length]);
 
   const handleCreateTrip = () => {
     setCreateTripFlow('manual');
@@ -44,11 +66,9 @@ export function MyTripsPageNew({ onSelectTrip }: MyTripsPageNewProps) {
       case 'upcoming':
         return upcomingTrips;
       case 'in_progress':
-        return groupedTrips.inProgress;
+        return inProgressTrips;
       case 'past':
         return pastTrips;
-      case 'drafts':
-        return draftTrips;
       case 'saved':
         return trips.filter(t => t.is_shared);
       default:
@@ -81,27 +101,6 @@ export function MyTripsPageNew({ onSelectTrip }: MyTripsPageNewProps) {
       />
 
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-8">
-        {activeTrip && activeTab === 'in_progress' && (
-          <div className="mb-12">
-            <ActiveTripHero
-              trip={activeTrip}
-              onViewItinerary={() => onSelectTrip(activeTrip.id)}
-              onEditTrip={() => onSelectTrip(activeTrip.id)}
-            />
-
-            {activeTrip.duration_days > 0 && (
-              <div className="mt-6">
-                <DayChips
-                  totalDays={activeTrip.duration_days}
-                  currentDay={1}
-                  selectedDay={selectedDay}
-                  onSelectDay={setSelectedDay}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'upcoming' && upcomingTrips.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Trips</h2>
@@ -113,11 +112,11 @@ export function MyTripsPageNew({ onSelectTrip }: MyTripsPageNewProps) {
           </div>
         )}
 
-        {activeTab === 'drafts' && draftTrips.length > 0 && (
+        {activeTab === 'in_progress' && inProgressTrips.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Draft Trips</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">In Progress</h2>
             <TripCardGrid
-              trips={draftTrips}
+              trips={inProgressTrips}
               onSelectTrip={onSelectTrip}
               onImproveWithAI={handleImproveWithAI}
             />

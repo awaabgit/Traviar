@@ -75,8 +75,18 @@ export function DateSelector({
         <ModernCalendar
           startDate={exactDates.startDate}
           endDate={exactDates.endDate}
-          onStartDateChange={(date) => onExactDatesChange({ ...exactDates, startDate: date })}
-          onEndDateChange={(date) => onExactDatesChange({ ...exactDates, endDate: date })}
+          onStartDateChange={(date) => {
+            console.log('DateSelector: onStartDateChange called with:', date);
+            onExactDatesChange({ ...exactDates, startDate: date });
+          }}
+          onEndDateChange={(date) => {
+            console.log('DateSelector: onEndDateChange called with:', date);
+            onExactDatesChange({ ...exactDates, endDate: date });
+          }}
+          onDatesChange={(start, end) => {
+            console.log('DateSelector: onDatesChange (atomic) called:', { start, end });
+            onExactDatesChange({ startDate: start, endDate: end });
+          }}
         />
       ) : (
         <div className="space-y-4">
