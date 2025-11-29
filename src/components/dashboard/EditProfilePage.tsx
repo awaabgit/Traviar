@@ -38,7 +38,11 @@ const PRESET_COVERS = [
   'https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg?auto=compress&cs=tinysrgb&w=1920',
 ];
 
-export function EditProfilePage() {
+interface EditProfilePageProps {
+  onNavigateToProfile?: () => void;
+}
+
+export function EditProfilePage({ onNavigateToProfile }: EditProfilePageProps = {}) {
   const { user } = useAuthContext();
   const { profile, loading: loadingProfile, refetch } = useProfile(user?.id);
   const { updateProfile, updating, error: updateError } = useUpdateProfile();
@@ -51,7 +55,6 @@ export function EditProfilePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState<'low' | 'medium' | 'high'>('medium');
   const [showCoverModal, setShowCoverModal] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [enablingCreator, setEnablingCreator] = useState(false);
   const [creatorEnabled, setCreatorEnabled] = useState(false);
 
@@ -98,8 +101,6 @@ export function EditProfilePage() {
   const handleSave = async () => {
     if (!user?.id) return;
 
-    setSaveSuccess(false);
-
     const result = await updateProfile(user.id, {
       full_name: displayName,
       avatar_url: avatar,
@@ -117,9 +118,9 @@ export function EditProfilePage() {
     });
 
     if (result) {
-      setSaveSuccess(true);
-      refetch(); // Refresh profile data
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Navigate immediately after successful save
+      // The profile page will show updated data via real-time subscription
+      onNavigateToProfile?.();
     }
   };
 
@@ -667,16 +668,6 @@ export function EditProfilePage() {
         </div>
       )}
 
-      {saveSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600" />
-          <div>
-            <p className="text-green-700 font-medium">Profile updated successfully!</p>
-            <p className="text-sm text-green-600 mt-1">Your changes have been saved.</p>
-          </div>
-        </div>
-      )}
-
       {/* Become a Creator Section - Only show for non-creators */}
       {!profile?.is_creator && !creatorEnabled && (
         <div className="bg-gradient-to-br from-coral-50 to-orange-50 rounded-xl border border-coral-200 p-6">
@@ -762,33 +753,25 @@ export function EditProfilePage() {
       )}
 
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 py-4 px-8 flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={updating}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-coral-500
-                     hover:bg-coral-600 text-white font-semibold transition-all shadow-sm
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {updating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Save Changes
-              </>
-            )}
-          </button>
-          {saveSuccess && (
-            <span className="text-green-600 font-medium flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Saved!
-            </span>
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-coral-500
+                   hover:bg-coral-600 text-white font-semibold transition-all shadow-sm
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Changes
+            </>
           )}
-        </div>
+        </button>
       </div>
     </div>
   );

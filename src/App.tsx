@@ -19,6 +19,7 @@ function AppContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('explore');
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showProfileUpdateSuccess, setShowProfileUpdateSuccess] = useState(false);
   const { loading } = useAuthContext();
 
   const handleSelectTrip = (tripId: string) => {
@@ -96,6 +97,8 @@ function AppContent() {
             <CreatorProfilePage
               isOwnProfile={true}
               onViewModeChange={setViewMode}
+              showUpdateSuccessToast={showProfileUpdateSuccess}
+              onDismissSuccessToast={() => setShowProfileUpdateSuccess(false)}
             />
           </div>
         </ProtectedView>
@@ -130,7 +133,14 @@ function AppContent() {
           emptyStateMessage="Please login or signup to edit your profile"
         >
           <div className="animate-fade-in">
-            <EditProfileStandalone onBack={() => setViewMode('profile')} />
+            <EditProfileStandalone
+              onBack={(showSuccessToast) => {
+                if (showSuccessToast) {
+                  setShowProfileUpdateSuccess(true);
+                }
+                setViewMode('profile');
+              }}
+            />
           </div>
         </ProtectedView>
         <AuthModalManager isOpen={showAuthModal} onClose={handleCloseAuthModal} />

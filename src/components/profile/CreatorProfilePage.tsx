@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '../Sidebar';
 import { MobileNav } from '../MobileNav';
 import { CreatorProfileHero, CreatorProfile } from './CreatorProfileHero';
@@ -10,8 +10,9 @@ import { CollectionsTab, CollectionCardData } from './CollectionsTab';
 import { AboutTab } from './AboutTab';
 import { CreatorRightPanel } from './CreatorRightPanel';
 import { CreateTripModal } from '../createTrip/CreateTripModal';
+import { VideoUploadModal } from '../dashboard/VideoUploadModal';
 import { ViewMode } from '../../types';
-import { Eye, X, Loader2 } from 'lucide-react';
+import { Eye, X, Loader2, CheckCircle } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useCreatorItineraries } from '../../hooks/useCreatorItineraries';
@@ -22,20 +23,39 @@ interface CreatorProfilePageProps {
   creatorId?: string;
   isOwnProfile?: boolean;
   onViewModeChange: (mode: ViewMode) => void;
+  showUpdateSuccessToast?: boolean;
+  onDismissSuccessToast?: () => void;
 }
 
-export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewModeChange }: CreatorProfilePageProps) {
+export function CreatorProfilePage({
+  creatorId,
+  isOwnProfile = false,
+  onViewModeChange,
+  showUpdateSuccessToast = false,
+  onDismissSuccessToast
+}: CreatorProfilePageProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>('itineraries');
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [isVisitorView, setIsVisitorView] = useState(false);
   const [isCreateTripModalOpen, setIsCreateTripModalOpen] = useState(false);
+  const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
+
+  // Auto-dismiss success toast after 3 seconds
+  useEffect(() => {
+    if (showUpdateSuccessToast && onDismissSuccessToast) {
+      const timer = setTimeout(() => {
+        onDismissSuccessToast();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showUpdateSuccessToast, onDismissSuccessToast]);
 
   // Get current user and profile data
   const { user } = useAuthContext();
   const userId = creatorId || user?.id;
   const { profile, loading, error } = useProfile(userId);
   const { itineraries: marketplaceItineraries, loading: itinerariesLoading } = useCreatorItineraries(userId);
-  const { videos: travelVideos } = useCreatorVideos(userId);
+  const { videos: travelVideos, refetch: refetchVideos } = useCreatorVideos(userId);
   const { collections: marketplaceCollections } = useCreatorCollections(userId);
 
   const handleFollow = () => {
@@ -117,8 +137,11 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
   };
 
   const handleUploadVideo = () => {
-    console.log('Upload video clicked');
-    // TODO: Implement video upload functionality
+    setIsVideoUploadModalOpen(true);
+  };
+
+  const handleVideoUploadSuccess = () => {
+    refetchVideos();
   };
 
   const handleLinkTikTok = () => {
@@ -174,6 +197,25 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
 
             {!loading && !error && creatorProfile && (
               <>
+                {showUpdateSuccessToast && (
+                  <div className="mb-4 px-6 py-4 rounded-xl bg-green-50 border border-green-200
+                               flex items-center justify-between animate-slide-down">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-900">Profile Updated!</p>
+                        <p className="text-xs text-green-700">Your profile changes have been saved successfully.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={onDismissSuccessToast}
+                      className="p-1.5 hover:bg-green-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4 text-green-600" />
+                    </button>
+                  </div>
+                )}
+
                 {isOwnProfile && isVisitorView && (
                   <div className="mb-4 px-6 py-4 rounded-xl bg-blue-50 border border-blue-200
                                flex items-center justify-between animate-slide-down">
@@ -276,6 +318,12 @@ export function CreatorProfilePage({ creatorId, isOwnProfile = false, onViewMode
           setIsCreateTripModalOpen(false);
           console.log('Trip created:', tripId);
         }}
+      />
+
+      <VideoUploadModal
+        isOpen={isVideoUploadModalOpen}
+        onClose={() => setIsVideoUploadModalOpen(false)}
+        onSuccess={handleVideoUploadSuccess}
       />
     </div>
   );
