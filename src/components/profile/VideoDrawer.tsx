@@ -6,6 +6,7 @@ import { TravelVideo } from '../../types';
 interface VideoDrawerProps {
   videoId: string | null;
   onClose: () => void;
+  onVideoSelect: (videoId: string) => void;
 }
 
 // Extract YouTube video ID from URL
@@ -117,7 +118,7 @@ const getThumbnailUrl = (video: TravelVideo): string => {
   return 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400';
 };
 
-export function VideoDrawer({ videoId, onClose }: VideoDrawerProps) {
+export function VideoDrawer({ videoId, onClose, onVideoSelect }: VideoDrawerProps) {
   const [video, setVideo] = useState<TravelVideo | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<TravelVideo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -267,10 +268,7 @@ export function VideoDrawer({ videoId, onClose }: VideoDrawerProps) {
                   {relatedVideos.map((relatedVideo) => (
                     <button
                       key={relatedVideo.id}
-                      onClick={() => {
-                        // This will trigger a re-fetch with the new video ID
-                        window.location.hash = `video-${relatedVideo.id}`;
-                      }}
+                      onClick={() => onVideoSelect(relatedVideo.id)}
                       className="aspect-[9/16] rounded-lg overflow-hidden bg-gray-100
                                hover:ring-2 hover:ring-coral-500 transition-all"
                     >

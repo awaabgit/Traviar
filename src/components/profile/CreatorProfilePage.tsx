@@ -297,6 +297,7 @@ export function CreatorProfilePage({
       <VideoDrawer
         videoId={selectedVideoId}
         onClose={() => setSelectedVideoId(null)}
+        onVideoSelect={(id) => setSelectedVideoId(id)}
       />
 
       <CreateTripModal
