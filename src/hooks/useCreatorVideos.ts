@@ -9,9 +9,12 @@ export function useCreatorVideos(creatorUserId: string | undefined) {
 
   const fetchVideos = async () => {
     if (!creatorUserId) {
+      console.log('⚠️ useCreatorVideos: No creatorUserId provided');
       setLoading(false);
       return;
     }
+
+    console.log('🔄 useCreatorVideos: Fetching videos for creator:', creatorUserId);
 
     try {
       setLoading(true);
@@ -27,9 +30,23 @@ export function useCreatorVideos(creatorUserId: string | undefined) {
         throw fetchError;
       }
 
+      console.log('✅ useCreatorVideos: Fetched videos:', data);
+      console.log('✅ useCreatorVideos: Video count:', data?.length || 0);
+
+      // Log thumbnail info for each video
+      data?.forEach((video: TravelVideo, index: number) => {
+        console.log(`📸 Video ${index + 1}:`, {
+          id: video.id,
+          title: video.title,
+          thumbnail_url: video.thumbnail_url,
+          video_url: video.video_url,
+          source_platform: video.source_platform,
+        });
+      });
+
       setVideos(data || []);
     } catch (err: any) {
-      console.error('Error fetching creator videos:', err);
+      console.error('❌ Error fetching creator videos:', err);
       setError(err.message || 'Failed to load videos');
       setVideos([]);
     } finally {

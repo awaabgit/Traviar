@@ -138,7 +138,8 @@ export interface TravelVideo {
   creator_username: string;
   creator_avatar_url?: string;
   creator_user_id?: string;
-  source_platform: 'traviar' | 'tiktok';
+  source_platform: 'traviar' | 'tiktok' | 'youtube';
+  video_format?: 'short' | 'standard'; // short = vertical/shorts, standard = horizontal/regular
   external_video_id?: string;
   location_name: string;
   location_country: string;

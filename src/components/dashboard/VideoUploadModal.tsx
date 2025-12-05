@@ -1,13 +1,36 @@
-import { useState } from 'react';
-import { Plus, Upload, Link as LinkIcon, Play, X, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Upload, Link as LinkIcon, Play, X, Loader2 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useManageVideos } from '../../hooks/useManageVideos';
+import { supabase } from '../../lib/supabase';
 
 interface VideoUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+// Extract YouTube video ID from URL
+const getYouTubeVideoId = (url: string): string | null => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+};
+
+// Generate YouTube thumbnail URL
+const getYouTubeThumbnail = (videoId: string): string => {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};
+
 
 export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModalProps) {
   const { user } = useAuthContext();
@@ -17,9 +40,243 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
   const [videoUrl, setVideoUrl] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
-  const [videoThumbnail, setVideoThumbnail] = useState('');
+  const [autoThumbnail, setAutoThumbnail] = useState('');
   const [locationName, setLocationName] = useState('');
   const [locationCountry, setLocationCountry] = useState('');
+  const [videoFormat, setVideoFormat] = useState<'short' | 'standard'>('short');
+
+  // File upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-generate thumbnail when URL changes
+  useEffect(() => {
+    if (!videoUrl) {
+      setAutoThumbnail('');
+      return;
+    }
+
+    const url = videoUrl.toLowerCase();
+
+    // YouTube videos - auto-generate thumbnail
+    if (uploadMethod === 'youtube') {
+      const videoId = getYouTubeVideoId(videoUrl);
+      if (videoId) {
+        setAutoThumbnail(getYouTubeThumbnail(videoId));
+      }
+
+      // Auto-detect format from URL
+      if (url.includes('youtube.com/shorts')) {
+        setVideoFormat('short');
+      } else if (url.includes('youtube.com/watch')) {
+        setVideoFormat('standard');
+      }
+    } else if (uploadMethod === 'tiktok') {
+      // TikTok videos are always short format
+      setVideoFormat('short');
+      // For TikTok, we'll use a placeholder until we implement TikTok API
+      setAutoThumbnail('https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400');
+    }
+  }, [videoUrl, uploadMethod]);
+
+  // File validation
+  const validateFile = (file: File): string | null => {
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo']; // .mp4, .mov, .avi
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'Invalid file type. Please upload MP4, MOV, or AVI files only.';
+    }
+
+    if (file.size > maxSize) {
+      return 'File size exceeds 500MB limit.';
+    }
+
+    return null;
+  };
+
+  // Handle file selection
+  const handleFileSelect = (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setUploadError(error);
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploadError(null);
+
+    // Auto-populate title from filename if empty
+    if (!videoTitle) {
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setVideoTitle(nameWithoutExt);
+    }
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  // Generate thumbnail from video
+  const generateThumbnail = (videoFile: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      video.preload = 'metadata';
+      video.muted = true;
+
+      video.onloadeddata = () => {
+        // Seek to 1 second or 10% of video, whichever is less
+        video.currentTime = Math.min(1, video.duration * 0.1);
+      };
+
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to generate thumbnail'));
+            }
+          }, 'image/jpeg', 0.8);
+        } else {
+          reject(new Error('Canvas context not available'));
+        }
+      };
+
+      video.onerror = () => {
+        reject(new Error('Failed to load video for thumbnail'));
+      };
+
+      video.src = URL.createObjectURL(videoFile);
+    });
+  };
+
+  // Upload file to Supabase Storage
+  const handleFileUpload = async () => {
+    if (!user || !selectedFile) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+
+    try {
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Upload video file
+      const { error: videoError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (videoError) throw videoError;
+
+      // Get public URL for video
+      const { data: { publicUrl: videoPublicUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(50);
+
+      // Generate and upload thumbnail
+      let thumbnailUrl = '';
+      try {
+        const thumbnailBlob = await generateThumbnail(selectedFile);
+        const thumbnailFileName = `${timestamp}_${selectedFile.name.replace(/\.[^/.]+$/, '')}.jpg`;
+        const thumbnailPath = `${user.id}/thumbnails/${thumbnailFileName}`;
+
+        const { error: thumbnailError } = await supabase.storage
+          .from('videos')
+          .upload(thumbnailPath, thumbnailBlob, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (!thumbnailError) {
+          const { data: { publicUrl: thumbPublicUrl } } = supabase.storage
+            .from('videos')
+            .getPublicUrl(thumbnailPath);
+          thumbnailUrl = thumbPublicUrl;
+        }
+      } catch (thumbError) {
+        console.error('Failed to generate thumbnail:', thumbError);
+        // Use placeholder if thumbnail generation fails
+        thumbnailUrl = 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400';
+      }
+
+      setUploadProgress(75);
+
+      // Create video record in database
+      const result = await createVideo(
+        user.id,
+        user.user_metadata?.username || user.email?.split('@')[0] || 'Unknown',
+        user.user_metadata?.avatar_url || '',
+        {
+          title: videoTitle,
+          description: videoDescription,
+          thumbnail_url: thumbnailUrl,
+          video_url: videoPublicUrl,
+          source_platform: 'traviar',
+          video_format: videoFormat,
+          location_name: locationName,
+          location_country: locationCountry,
+        }
+      );
+
+      if (!result) {
+        throw new Error('Failed to create video record');
+      }
+
+      setUploadProgress(100);
+
+      // Success!
+      setTimeout(() => {
+        resetForm();
+        onSuccess();
+        onClose();
+      }, 500);
+
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setUploadError(err.message || 'Failed to upload video');
+      setUploadProgress(0);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleCreateVideo = async () => {
     if (!user) return;
@@ -28,8 +285,17 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
       return;
     }
 
-    const platform = uploadMethod === 'file' ? 'traviar' : uploadMethod;
+    // For file uploads, use the file upload handler
+    if (uploadMethod === 'file') {
+      if (!selectedFile) {
+        alert('Please select a video file');
+        return;
+      }
+      await handleFileUpload();
+      return;
+    }
 
+    // For URL-based uploads (TikTok, YouTube)
     const result = await createVideo(
       user.id,
       user.user_metadata?.username || user.email?.split('@')[0] || 'Unknown',
@@ -37,10 +303,11 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
       {
         title: videoTitle,
         description: videoDescription,
-        thumbnail_url: videoThumbnail || 'https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg?auto=compress&cs=tinysrgb&w=400',
+        thumbnail_url: autoThumbnail, // Don't use fallback - let the component handle it
         video_url: videoUrl || undefined,
-        source_platform: platform as 'traviar' | 'tiktok' | 'youtube',
-        external_video_id: uploadMethod !== 'file' ? videoUrl : undefined,
+        source_platform: uploadMethod as 'tiktok' | 'youtube',
+        video_format: videoFormat,
+        external_video_id: videoUrl,
         location_name: locationName,
         location_country: locationCountry,
       }
@@ -57,12 +324,22 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
     setVideoUrl('');
     setVideoTitle('');
     setVideoDescription('');
-    setVideoThumbnail('');
+    setAutoThumbnail('');
     setLocationName('');
     setLocationCountry('');
+    setVideoFormat('short');
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setUploading(false);
+    setUploadError(null);
+    setIsDragging(false);
   };
 
   const handleClose = () => {
+    // Prevent closing while uploading
+    if (uploading) {
+      return;
+    }
     resetForm();
     onClose();
   };
@@ -76,7 +353,8 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
           <h2 className="text-xl font-bold text-gray-900">Add New Video</h2>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            disabled={uploading}
+            className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5" />
           </button>
@@ -85,7 +363,8 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setUploadMethod('tiktok')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+            disabled={uploading}
+            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               uploadMethod === 'tiktok'
                 ? 'border-coral-500 bg-coral-50 text-coral-700'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -96,7 +375,8 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
           </button>
           <button
             onClick={() => setUploadMethod('youtube')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+            disabled={uploading}
+            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               uploadMethod === 'youtube'
                 ? 'border-coral-500 bg-coral-50 text-coral-700'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -107,7 +387,8 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
           </button>
           <button
             onClick={() => setUploadMethod('file')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+            disabled={uploading}
+            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               uploadMethod === 'file'
                 ? 'border-coral-500 bg-coral-50 text-coral-700'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -139,16 +420,115 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
 
         {uploadMethod === 'file' && (
           <div className="space-y-4 mb-6">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-coral-500 transition-all cursor-pointer">
-              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-              <p className="text-sm font-medium text-gray-700 mb-1">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-500">MP4, MOV, AVI (max 500MB)</p>
-              <p className="text-xs text-gray-400 mt-2">Note: File upload not yet implemented</p>
-            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file);
+              }}
+              className="hidden"
+            />
+
+            {!selectedFile ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
+                  isDragging
+                    ? 'border-coral-500 bg-coral-50'
+                    : 'border-gray-300 hover:border-coral-500'
+                }`}
+              >
+                <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  {isDragging ? 'Drop video here' : 'Click to upload or drag and drop'}
+                </p>
+                <p className="text-xs text-gray-500">MP4, MOV, AVI (max 500MB)</p>
+              </div>
+            ) : (
+              <div className="border-2 border-coral-500 bg-coral-50 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Play className="w-8 h-8 text-coral-600" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{selectedFile.name}</p>
+                      <p className="text-xs text-gray-600">
+                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedFile(null)}
+                    className="p-1 hover:bg-coral-100 rounded"
+                    type="button"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+
+                {uploading && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-700">Uploading...</span>
+                      <span className="text-xs font-medium text-gray-700">{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-coral-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{uploadError}</p>
+              </div>
+            )}
           </div>
         )}
 
         <div className="space-y-4">
+          {/* Video Format Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Video Format *
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setVideoFormat('short')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                  videoFormat === 'short'
+                    ? 'border-coral-500 bg-coral-50 text-coral-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold text-sm mb-1">Shorts (Vertical)</div>
+                <div className="text-xs opacity-75">9:16 aspect ratio</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVideoFormat('standard')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                  videoFormat === 'standard'
+                    ? 'border-coral-500 bg-coral-50 text-coral-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold text-sm mb-1">Video (Horizontal)</div>
+                <div className="text-xs opacity-75">16:9 aspect ratio</div>
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Video Title *
@@ -175,18 +555,21 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Thumbnail URL (Optional)
-            </label>
-            <input
-              type="url"
-              value={videoThumbnail}
-              onChange={(e) => setVideoThumbnail(e.target.value)}
-              placeholder="https://example.com/thumbnail.jpg"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral-500"
-            />
-          </div>
+          {autoThumbnail && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thumbnail Preview
+              </label>
+              <div className="relative aspect-video w-48 rounded-lg overflow-hidden border border-gray-300">
+                <img
+                  src={autoThumbnail}
+                  alt="Video thumbnail"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Auto-generated from video URL</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -227,18 +610,18 @@ export function VideoUploadModal({ isOpen, onClose, onSuccess }: VideoUploadModa
           </button>
           <button
             onClick={handleCreateVideo}
-            disabled={creating}
+            disabled={creating || uploading}
             className="flex-1 px-4 py-2.5 rounded-lg bg-coral-500 hover:bg-coral-600
                      text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center gap-2"
           >
-            {creating ? (
+            {(creating || uploading) ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading...
+                {uploading ? `Uploading... ${uploadProgress}%` : 'Creating...'}
               </>
             ) : (
-              'Upload Video'
+              uploadMethod === 'file' ? 'Upload Video' : 'Add Video'
             )}
           </button>
         </div>

@@ -8,6 +8,7 @@ type VideoCreateData = {
   thumbnail_url: string;
   video_url?: string;
   source_platform: 'traviar' | 'tiktok' | 'youtube';
+  video_format?: 'short' | 'standard';
   external_video_id?: string;
   location_name?: string;
   location_country?: string;
@@ -44,6 +45,7 @@ export function useManageVideos() {
           thumbnail_url: videoData.thumbnail_url,
           video_url: videoData.video_url,
           source_platform: videoData.source_platform,
+          video_format: videoData.video_format || 'standard',
           external_video_id: videoData.external_video_id,
           location_name: videoData.location_name || '',
           location_country: videoData.location_country || '',

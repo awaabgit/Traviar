@@ -4,7 +4,7 @@ import { MobileNav } from '../MobileNav';
 import { CreatorProfileHero, CreatorProfile } from './CreatorProfileHero';
 import { ProfileTabBar, ProfileTab } from './ProfileTabBar';
 import { ItinerariesTab, ItineraryCardData } from './ItinerariesTab';
-import { VideosTab, VideoCardData } from './VideosTab';
+import { VideosTab } from './VideosTab';
 import { VideoDrawer } from './VideoDrawer';
 import { CollectionsTab, CollectionCardData } from './CollectionsTab';
 import { AboutTab } from './AboutTab';
@@ -82,10 +82,6 @@ export function CreatorProfilePage({
     console.log('Collection clicked:', id);
   };
 
-  const handleOpenItinerary = () => {
-    setSelectedVideoId(null);
-    console.log('Open itinerary from video');
-  };
 
   const handleChatToggle = () => {
     console.log('Chat toggle');
@@ -149,13 +145,7 @@ export function CreatorProfilePage({
     // TODO: Implement TikTok linking functionality
   };
 
-  // Map travel videos to VideoCardData format
-  const videoCards: VideoCardData[] = travelVideos.map((video) => ({
-    id: video.id,
-    thumbnail: video.thumbnail_url || 'https://via.placeholder.com/400x600',
-    views: video.view_count || 0,
-    itineraryTag: video.location_name,
-  }));
+  // No need to map videos anymore - pass them directly
 
   // Map marketplace collections to CollectionCardData format
   const collectionCards: CollectionCardData[] = marketplaceCollections.map((collection) => ({
@@ -262,7 +252,7 @@ export function CreatorProfilePage({
 
                   {activeTab === 'videos' && (
                     <VideosTab
-                      videos={videoCards}
+                      videos={travelVideos}
                       isOwnProfile={isOwnProfile}
                       onVideoClick={handleVideoClick}
                       onUploadVideo={handleUploadVideo}
@@ -307,7 +297,6 @@ export function CreatorProfilePage({
       <VideoDrawer
         videoId={selectedVideoId}
         onClose={() => setSelectedVideoId(null)}
-        onOpenItinerary={handleOpenItinerary}
       />
 
       <CreateTripModal
